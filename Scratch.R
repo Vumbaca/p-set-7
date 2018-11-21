@@ -40,7 +40,7 @@ adv <- x %>%
   distinct() %>%
   filter(response == "Dem" | response == "Rep") %>%
   spread(response, weight) %>%
-  mutate("rep_adv" = 100 * (Rep - Dem) / total) %>%
+  mutate("rep_adv" = round(100 * (Rep - Dem) / total, 2)) %>%
   select(district_id, rep_adv)
 
 x <- left_join(x, adv, by = "district_id")
@@ -50,10 +50,10 @@ x_age <- x %>%
   count(age_combined) %>%
   spread(age_combined, n) %>%
   mutate(total = `18 to 29` + `30 to 44` + `45 to 64` + `65 and older`) %>%
-  mutate(p_18 = `18 to 29` / total) %>%
-  mutate(p_30 = `30 to 44` / total) %>%
-  mutate(p_45 = `45 to 64` / total) %>%
-  mutate(p_65 = `65 and older` / total)
+  mutate(p_18 = round(100 * `18 to 29` / total, 2)) %>%
+  mutate(p_30 = round(100 * `30 to 44` / total, 2)) %>%
+  mutate(p_45 = round(100 * `45 to 64` / total, 2)) %>%
+  mutate(p_65 = round(100 * `65 and older` / total, 2))
 
 x <- left_join(x, x_age, by = "district_id")
   
@@ -66,10 +66,10 @@ x_educ <- x %>%
                  `High School Grad. or Less` +
                  `Postgraduate Degree` +
                  `Some College Educ.`) %>%
-  mutate(p_high = `High School Grad. or Less` / total) %>%
-  mutate(p_some = `Some College Educ.` / total) %>%
-  mutate(p_coll = `4-year College Grad.` / total) %>%
-  mutate(p_post = `Postgraduate Degree` / total)
+  mutate(p_high = round(100 * `High School Grad. or Less` / total, 2)) %>%
+  mutate(p_some = round(100 * `Some College Educ.` / total, 2)) %>%
+  mutate(p_coll = round(100 * `4-year College Grad.` / total, 2)) %>%
+  mutate(p_post = round(100 * `Postgraduate Degree` / total, 2))
 
 x <- left_join(x, x_educ, by = "district_id")
 
@@ -79,10 +79,10 @@ x_race <- x %>%
   spread(race_eth, n) %>%
   mutate(total = ifelse(is.na(Asian), `[DO NOT READ] Don't know/Refused` + 0 + Black + Hispanic + Other + White,
                         `[DO NOT READ] Don't know/Refused` + Asian + Black + Hispanic + Other + White)) %>%
-  mutate(p_asian = ifelse(is.na(Asian), 0, Asian / total)) %>%
-  mutate(p_black = Black / total) %>%
-  mutate(p_hispanic = Hispanic / total) %>%
-  mutate(p_white = White / total)
+  mutate(p_asian = ifelse(is.na(Asian), 0, round(100 * Asian / total, 2))) %>%
+  mutate(p_black = round(100 * Black / total, 2)) %>%
+  mutate(p_hispanic = round(100 * Hispanic / total, 2)) %>%
+  mutate(p_white = round(100 * White / total, 2))
 
 x <- left_join(x, x_race, by = "district_id")
 
@@ -91,8 +91,8 @@ x_gender <- x %>%
   count(gender_combined) %>%
   spread(gender_combined, n) %>%
   mutate(total = Female + Male) %>%
-  mutate(p_female = Female / total) %>%
-  mutate(p_male = Male / total)
+  mutate(p_female = round(100 * Female / total, 2)) %>%
+  mutate(p_male = round(100 * Male / total, 2))
 
 x <- left_join(x, x_gender, by = "district_id")
 
@@ -105,9 +105,10 @@ x_party <- x %>%
                  `Independent (No party)` +
                  `or as a member of another political party` +
                  Republican) %>%
-  mutate(p_dem = Democrat / total) %>%
-  mutate(p_indep = `Independent (No party)` / total) %>%
-  mutate(p_rep = Republican / total)
+  mutate(p_dem = round(100 * Democrat / total, 2)) %>%
+  mutate(p_other = round(100 * `or as a member of another political party` / total, 2)) %>%
+  mutate(p_indep = round(100 * `Independent (No party)` / total, 2)) %>%
+  mutate(p_rep = round(100 * Republican / total, 2))
 
 x <- left_join(x, x_party, by = "district_id")
 
@@ -116,19 +117,20 @@ y <- read_csv("mt_2_results.csv")
 y <- y %>%
   mutate(district = ifelse(district == "AL", 01, district)) %>%
   mutate(district_id = paste(state, district, sep = "-")) %>%
-  mutate(rep_adv = 100 * (rep_votes - dem_votes) / (rep_votes + dem_votes + other_votes))
+  mutate(rep_adv = round(100 * (rep_votes - dem_votes) / (rep_votes + dem_votes + other_votes), 2))
 
 shiny_data <- left_join(x, y, by = "district_id")
 
 shiny_data <- shiny_data %>%
-  mutate(perc_error =  (rep_adv.y - rep_adv.x) / rep_adv.x) %>%
   select(district_id,
-         perc_error,
+         rep_adv_act = rep_adv.y,
+         rep_adv_est = rep_adv.x,
          p_18, p_30, p_45, p_65,
          p_high, p_some, p_coll, p_post,
          p_asian, p_black, p_hispanic, p_white,
          p_female, p_male,
-         p_dem, p_indep, p_rep) %>%
+         p_dem, p_rep, p_indep, p_other) %>%
+  mutate(error = round(rep_adv_act - rep_adv_est, 2)) %>%
   distinct()
 
 write_rds(shiny_data, "Errors/shiny_data.rds", compress = "gz")
