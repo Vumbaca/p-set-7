@@ -45,6 +45,72 @@ adv <- x %>%
 
 x <- left_join(x, adv, by = "district_id")
 
+x_age <- x %>%
+  group_by(district_id) %>%
+  count(age_combined) %>%
+  spread(age_combined, n) %>%
+  mutate(total = `18 to 29` + `30 to 44` + `45 to 64` + `65 and older`) %>%
+  mutate(p_18 = `18 to 29` / total) %>%
+  mutate(p_30 = `30 to 44` / total) %>%
+  mutate(p_45 = `45 to 64` / total) %>%
+  mutate(p_65 = `65 and older` / total)
+
+x <- left_join(x, x_age, by = "district_id")
+  
+x_educ <- x %>%
+  group_by(district_id) %>%
+  count(educ4) %>%
+  spread(educ4, n) %>%
+  mutate(total = `[DO NOT READ] Don't know/Refused` +
+                 `4-year College Grad.` +
+                 `High School Grad. or Less` +
+                 `Postgraduate Degree` +
+                 `Some College Educ.`) %>%
+  mutate(p_high = `High School Grad. or Less` / total) %>%
+  mutate(p_some = `Some College Educ.` / total) %>%
+  mutate(p_coll = `4-year College Grad.` / total) %>%
+  mutate(p_post = `Postgraduate Degree` / total)
+
+x <- left_join(x, x_educ, by = "district_id")
+
+x_race <- x %>%
+  group_by(district_id) %>%
+  count(race_eth) %>%
+  spread(race_eth, n) %>%
+  mutate(total = ifelse(is.na(Asian), `[DO NOT READ] Don't know/Refused` + 0 + Black + Hispanic + Other + White,
+                        `[DO NOT READ] Don't know/Refused` + Asian + Black + Hispanic + Other + White)) %>%
+  mutate(p_asian = ifelse(is.na(Asian), 0, Asian / total)) %>%
+  mutate(p_black = Black / total) %>%
+  mutate(p_hispanic = Hispanic / total) %>%
+  mutate(p_white = White / total)
+
+x <- left_join(x, x_race, by = "district_id")
+
+x_gender <- x %>%
+  group_by(district_id) %>%
+  count(gender_combined) %>%
+  spread(gender_combined, n) %>%
+  mutate(total = Female + Male) %>%
+  mutate(p_female = Female / total) %>%
+  mutate(p_male = Male / total)
+
+x <- left_join(x, x_gender, by = "district_id")
+
+x_party <- x %>%
+  group_by(district_id) %>%
+  count(partyid) %>%
+  spread(partyid, n) %>%
+  mutate(total = `[DO NOT READ] Refused` +
+                 Democrat +
+                 `Independent (No party)` +
+                 `or as a member of another political party` +
+                 Republican) %>%
+  mutate(p_dem = Democrat / total) %>%
+  mutate(p_indep = `Independent (No party)` / total) %>%
+  mutate(p_rep = Republican / total)
+
+x <- left_join(x, x_party, by = "district_id")
+
 y <- read_csv("mt_2_results.csv")
 
 y <- y %>%
@@ -52,4 +118,17 @@ y <- y %>%
   mutate(district_id = paste(state, district, sep = "-")) %>%
   mutate(rep_adv = 100 * (rep_votes - dem_votes) / (rep_votes + dem_votes + other_votes))
 
-midterm <- left_join(x, y, by = "district_id")
+shiny_data <- left_join(x, y, by = "district_id")
+
+shiny_data <- shiny_data %>%
+  select(district_id,
+         predicted_rep_adv = rep_adv.x,
+         p_18, p_30, p_45, p_65,
+         p_high, p_some, p_coll, p_post,
+         p_asian, p_black, p_hispanic, p_white,
+         p_female, p_male,
+         p_dem, p_indep, p_rep,
+         actual_rep_adv = rep_adv.y) %>%
+  distinct()
+
+write_rds(shiny_data, "Errors/shiny_data.rds")
