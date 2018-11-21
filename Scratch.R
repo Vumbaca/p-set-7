@@ -121,14 +121,14 @@ y <- y %>%
 shiny_data <- left_join(x, y, by = "district_id")
 
 shiny_data <- shiny_data %>%
+  mutate(perc_error =  (rep_adv.y - rep_adv.x) / rep_adv.x) %>%
   select(district_id,
-         predicted_rep_adv = rep_adv.x,
+         perc_error,
          p_18, p_30, p_45, p_65,
          p_high, p_some, p_coll, p_post,
          p_asian, p_black, p_hispanic, p_white,
          p_female, p_male,
-         p_dem, p_indep, p_rep,
-         actual_rep_adv = rep_adv.y) %>%
+         p_dem, p_indep, p_rep) %>%
   distinct()
 
-write_rds(shiny_data, "Errors/shiny_data.rds")
+write_rds(shiny_data, "Errors/shiny_data.rds", compress = "gz")
