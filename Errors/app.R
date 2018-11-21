@@ -180,6 +180,42 @@ server <- function(input, output) {
        }
      }
    })
+   
+   output$table <- renderDataTable({
+     if(input$demo == "Age"){
+       midterms %>%
+         select(district_id, error, rep_adv_act, rep_adv_est, p_18, p_30, p_45, p_65) %>%
+         arrange(desc(error))
+     }
+     else{
+       if(input$demo == "Education"){
+         midterms %>%
+           select(district_id, error, rep_adv_act, rep_adv_est, p_high, p_some, p_coll, p_post) %>%
+           arrange(desc(error))
+       }
+       else{
+         if(input$demo == "Race"){
+           midterms %>%
+             select(district_id, error, rep_adv_act, rep_adv_est, p_white, p_hispanic, p_black, p_asian) %>%
+             arrange(desc(error))
+         }
+         else{
+           if(input$demo == "Party"){
+             midterms %>%
+               select(district_id, p_dem, rep_adv_act, rep_adv_est, error, p_rep, p_indep, p_other) %>%
+               arrange(desc(error))
+           }
+           else{
+             if(input$demo == "Gender"){
+               midterms %>%
+                 select(district_id, rep_adv_act, rep_adv_est, error, p_male, p_female) %>%
+                 arrange(desc(error))
+             }
+           }
+         }
+       }
+     }
+   })
 }
 
 shinyApp(ui = ui, server = server)
